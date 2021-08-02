@@ -13,7 +13,6 @@
 int leerArchivo(char * pathname , int filas, int columnas,float * buffer,int N,int flag);
 void zoomIN(int filas, int columnas,float * buffer , float ** zoom, int factor, int N);
 void suavizado(int filas, int columnas,float * buffer , float ** suavizados, int N);
-void rotar(int filas, int columnas,int grados,float * buffer , float ** rotado, int N,int flag);
 void printBuffer(int filas, int columnas, float * buffer);
 int escribirImagen(char * salidaName , int filas, int columnas,float * buffer,int N,int flag);
 int transformarGrados(int grados);
