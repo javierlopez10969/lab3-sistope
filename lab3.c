@@ -33,12 +33,16 @@ pthread_t * hebras;
 
 void * productora (void *params){
     //Leer la imagen de forma secuencial
-    int N = (filas * columnas * 2);
+    int N = (filas * columnas * 4);
     buffer = (float *)malloc(sizeof(float) * N);
     leerArchivo(nombreImagen, filas, columnas, buffer, N,bandera);
-    escribirImagen(imagenSalida, filas, columnas, buffer, N,bandera);
+    escribirImagen(imagenSalida, filas, columnas, buffer,N,bandera);
     //Calcular la cantidad de tamaño para cada hebra
     int m = filas/cantHebras; 
+    if (bandera != 0){
+        printf("Tamaño cada hebra %d bS : %d \n",m,bufferSize);
+    }
+    
     //recoger porcion de la imagen
     //aplicar zoom-in
     //pthread_barrier_wait();
@@ -81,11 +85,12 @@ int main(int argc, char **argv){
             bandera = 1;
             break;
         case '?':
-            if (optopt == 'c'){
-                fprintf(stderr, "Opcion -%c requiere un argumento.\n", optopt);}
             if (optopt == 'f'){
                 bandera = 1;
                 break;}
+            if (optopt == 'c'){
+                fprintf(stderr, "Opcion -%c requiere un argumento.\n", optopt);}
+
             else if (isprint(optopt))
                 fprintf(stderr, "Opcion desconocida `-%c'.\n", optopt);
             else
