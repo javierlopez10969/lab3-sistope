@@ -26,36 +26,47 @@ de que se ingrese este flag debera mostrar las dimensiones de la imagen
 
 char *nombreImagen = NULL;
 char *imagenSalida = NULL;
-int filas, columnas, bandera, factor, opterr, cantHebras, bufferSize;
+int filas, columnas, bandera, factor, opterr, cantHebras, bufferSize,N,m;
 float *buffer;
 pthread_t * hebras;
 
+void * zoomINThread(void *params){
+
+}
 
 void * productora (void *params){
     //Leer la imagen de forma secuencial
-    int N = (filas * columnas * 4);
+    N = (filas * columnas * 4);
     buffer = (float *)malloc(sizeof(float) * N);
     leerArchivo(nombreImagen, filas, columnas, buffer, N,bandera);
-    escribirImagen(imagenSalida, filas, columnas, buffer,N,bandera);
+    float * buffer2 = (float *)malloc(sizeof(float) * N);
+    delineado(filas,columnas, buffer , &buffer2,N);
+    escribirImagen(imagenSalida, filas, columnas, buffer2,N,bandera);
     //Calcular la cantidad de tamaño para cada hebra
-    int m = filas/cantHebras; 
-    if (bandera != 0){
-        printf("Tamaño cada hebra %d bS : %d \n",m,bufferSize);
-    }
-    
+    m = filas/cantHebras; 
+    if (bandera != 0)printf("Tamaño cada hebra %d bS : %d \n",m,bufferSize);
+    //Creamos cada hebra
+    hebras = (pthread_t*)malloc(sizeof(pthread_t)*cantHebras);
     //recoger porcion de la imagen
     //aplicar zoom-in
+    for(int i =0; i < cantHebras; i++){
+        pthread_create(&hebras[i],NULL,zoomINThread,NULL);
+    }
     //pthread_barrier_wait();
-    //aplicar efecto de suavi
-    int x;
-	x = *((int *)params);//se castea el argumento de void* a int
-	printf("Total buffer :  %d \n", x);
-	return NULL; //finaliza la hebra
+    // Esperamos a que todas terminen
+    for(int i =0; i < cantHebras; i++){
+        pthread_join(hebras[i], NULL);
+    }
+    //aplicar efecto de suavizado
+    //pthread_barrier_wait();
+
+    //Liberar las hebras consumidoras
+    free(hebras);
 }
 
 int main(int argc, char **argv){
     char c;
-    filas, columnas, bandera, factor, opterr, cantHebras, bufferSize = 0;
+    filas, columnas, bandera, factor, opterr, cantHebras, bufferSize,N,m = 0;
     opterr += 1;
     //el siguiente ciclo se utiliza para recibir los parametros de entrada usando getopt
     while ((c = getopt(argc, argv, "I:O:M:N:h:r:b:f:")) != -1)
@@ -112,17 +123,15 @@ int main(int argc, char **argv){
     }
     else{
         if (bandera != 0)
-            printf("Nombre imagen de entrada : %s \n Imagen salida : %s \n  filas : %d \n columnas : %d \n factor : %d \n bandera : %d\n",
-            nombreImagen, imagenSalida, filas, columnas, factor, bandera);
+            printf("Nombre imagen de entrada : %s \n Imagen salida : %s \n  filas : %d \n columnas : %d \n factor : %d \n bandera : %d\n hebras : %d \n bufferTamaño : %d \n",
+            nombreImagen, imagenSalida, filas, columnas, factor, bandera,cantHebras,bufferSize);
         //creación de hilos
         pthread_t hebra; //se crea una variable de tipo pthread para al hebra productora
-        int *argumento = (int *)malloc(sizeof(int));
-	    *argumento = bufferSize;
         //primer argumento de pthread_create: &nombre de la variable hebra
         //segundo argumento: atributos de la hebra, para usar los atributos por defecto se le entrega un NULL
         //tercer argumento: funcion definida como void *, que solo puede recibir argumentos void *
         //argumento que recibira la funcion de la hebra, debe castearse a (void *)
-        pthread_create(&hebra, NULL, productora,(void *)argumento );
+        pthread_create(&hebra, NULL, productora,NULL );
         pthread_join(hebra, NULL); 
         //funcion que permite al proceso principal esperar a que termine la ejecucion de la hebra
     }

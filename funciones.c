@@ -130,7 +130,6 @@ void zoomIN(int filas, int columnas,float * buffer , float ** zoom,int factor, i
         z = k;
 
     }
-    //printBuffer(filas*factor,columnas*factor,newBuffer);
     *zoom = bufferFinal; 
 }
 
@@ -198,90 +197,69 @@ void suavizado(int filas, int columnas,float * buffer , float ** suavizados, int
     *suavizados = newBuffer;
 }
 
-//Entradas: un entero que representa los grados
-//Funcionamiento: si los grados superan los 360 grados, seran transformados a su equivalente entre 0 y 360 grados
-//Salidas: un entero que representa los grados
-int transformarGrados(int grados){
-    int gradosAux= grados;
-    while (gradosAux-360>0){
-            gradosAux = gradosAux-360;
-    }
-    return gradosAux;
-}
 
-//Entradas: Numero de filas y columnas, el entero con los grados, un buffer vacio, el buffer de la imagen ya rotada-
-//N que corresponde a la cantidad de bytes (filas * columnas * 4) y por ultimo la bandera para mostrar el estado actual del programa
-//Funcionamiento: con el buffer de imagen (con zoomIn y suavizado aplicado) se procede a rotar dependiendo del valor de grados en las variables de entrada. escribiendo en un nuevo
-//buffer los valores del arreglo post rotacion
-//Salidas: retorna un buffer con el contenido de la imagen cambiado de posicion (rotacion)
-void rotar(int filas, int columnas,int grados,float * buffer , float ** rotado, int N,int flag){
+//Entradas: Numero de filas y columnas, el buffer original con el contenido de la imagen, un buffer el cual se encuentra vacio (NULL);
+//y N que corresponde a la cantidad de bytes (filas * columnas * 4).
+//Funcionamiento: realiza el proceso de Delineado, el cual consiste en que cada posicion del vecindario (incluido el centro) debe cambiar su valor por uno pre-establecido en la mascara laplaciana
+//la adicion de estos nuevos valores corresponde al nuevo valor que tendra el pixel en esa misma posicion
+//Salidas: Nuevo buffer el cual corresponde a la imagen posterior a su proceso de delineado.
+void delineado(int filas, int columnas,float * buffer , float ** delineados, int N){
     float * newBuffer = (float*)malloc(sizeof(float)*(columnas*filas*4));
-    grados = transformarGrados(grados);
-    if (flag==1)printf("Grados :  %d\n", grados);
     //Iterador que recorre el nuevo buffer
-    int i = 0 ;int k = 0; int elemento;
-    //Ver que tipo de rotacion hay que hacer
-    //0 o 360 : no darlo vuelta
-    if (grados == 0 || grados%360==0){
-        if (flag==1)printf("No rotamos\n\n");
-        newBuffer = buffer; 
-    }    
-    //270 darlo vuelta hacia la izquierda.0000
-    else if(grados%270 == 0){
-        if (flag==1)printf("rotando en 270\n");
-        i = filas -1;
-        k = 0;
-        int comienzo = filas-1;
-        while (k< filas*columnas){
-            elemento = buffer[i];
-            newBuffer[k] = elemento;
-            if (i+filas > filas*columnas){
-                i = comienzo -1;
-                comienzo = comienzo-1;
-            }else{
-                i = i +filas;
-            }
-            k++;
-        }        
-    }
-    //180 darlo vuelta de cabeza
-    else if(grados%180 == 0){
-        if (flag==1)printf("rotando en 180\n");
-        //Vamos del ultimo elemento buffer hacia el primero
-        i = filas*columnas;
-        k = 0;
-        while (i!=0){
-            elemento =  buffer[k];
-            newBuffer[i] = elemento;
-            i--;
-            k ++;
+    int i = 0 ;
+    float posPrima = 0;
+    while (i < filas*columnas){
+        //printf(" %d -", i);
+        //utiliza la misma estrategia que en suavizado para encontrar a los vecinos de la posicion actual
+        //la posición de cada caso siempre se considerara como el centro de la mascara
+        //Si es el primer valor primera esquina superior izquierda
+        if (i == 0){
+            posPrima = (buffer[i+1] * -1 + buffer[i+columnas] * -1 + buffer[i+columnas+1] * -1 + buffer[i] * 8);
+            newBuffer [i] = posPrima;
         }
-        newBuffer [0] = buffer[filas*columnas-1];
+        //Si el iterador es la segunda esquina, esquina superior derecha
+        else if(i == columnas -1){
+            posPrima = (buffer[i-1] *-1 + buffer[i+ columnas] *-1 + buffer[i+ columnas -1] *-1 + buffer[i] * 8);
+            newBuffer [i] = posPrima;
+        }
+        //esquina inferior izquerda de la imagen
+        else if(i == (columnas * filas) - columnas){
+            posPrima = (buffer[i+1] *-1 + buffer[i-columnas] * -1 + buffer[i-columnas+1] *-1 + buffer[i] * 8);
+            newBuffer [i] = posPrima;
+        }
+        //esquina inferior derecha de la imagen
+        else if(i == ((columnas * filas) - 1)){
+            posPrima = (buffer[i-1] *-1 + buffer[i-columnas] *-1 + buffer[i-columnas-1] *-1 + buffer[i] * 8);
+            newBuffer [i] = posPrima;
+            
+        }
+        //Caso orilla superior
+        else if (i != 0 && i < columnas-1){
+            posPrima = (buffer[i-1] *-1 + buffer[i+1]*-1 + buffer[i+columnas]*-1 + buffer[i+columnas-1] *-1 + buffer[i+columnas+1] *-1 + buffer[i] * 8);
+            newBuffer [i] = posPrima;
+        }
+        //Caso orilla izquierda
+        else if (i != 0 && i != (columnas * filas) - columnas && i%columnas == 0){
+            posPrima = (buffer[i+1] * -1 + buffer[i-columnas] *-1 + buffer[i-columnas+1] *-1 + buffer[i+columnas] *-1 + buffer[i+columnas+1] *-1 + buffer[i] * 8);
+            newBuffer [i] = posPrima;
+        }
+        //Caso orilla derecha
+        else if(i != (columnas * filas)-1 && i != columnas -1 && i%(columnas-1) == 0 ){
+            posPrima = (buffer[i-1] *-1 + buffer[i-columnas] *-1 + buffer[i-columnas-1] *-1 + buffer[i+columnas] *-1 + buffer[i+columnas-1] *-1 + buffer[i] * 8);
+            newBuffer [i] = posPrima;
+        }
+        //Caso orilla inferior
+        else if(i > (columnas * filas) - columnas && i < (columnas * filas) - 1 ){
+            posPrima = (buffer[i-1] *-1 + buffer[i+1] *-1 + buffer[i-columnas] *-1 + buffer[i-columnas-1] *-1 + buffer[i-columnas+1] *-1 + buffer[i] * 8);
+            newBuffer [i] = posPrima;
+        }
+        //Caso de al medio con 6 vecinos.
+        else{
+            posPrima = (buffer[i+1] *-1+ buffer[i-1] *-1+ buffer[i-columnas] *-1+ buffer[i-columnas-1] *-1+ buffer[i-columnas+1] *-1+ buffer[i+columnas]*-1 + buffer[i+columnas-1] *-1 + buffer[i+columnas + 1] *-1+ buffer[i] * 8); 
+            newBuffer [i] = posPrima;
+        }
+        //Si es 
+        i++;
     }
-    //90 darlo vuelta hacia la derecha
-    else if(grados %90 == 0){
-        if (flag==1)printf("rotando en 90\n");
-        i = filas -1;
-        k = 0;
-        int comienzo = filas-1;
-        while (k< filas*columnas){
-            elemento = buffer[i];
-            newBuffer[k] = elemento;
-            if (i+filas > filas*columnas){
-                i = comienzo -1;
-                comienzo = comienzo-1;
-            }else{
-                i = i +filas;
-            }
-            k++;
-        } 
-        //invertir la imagen en 180 grados para que se aplique una rotacion en 90 grados respecto a la imagen inicial.
-        float * buffer2 =NULL;
-        //recursión para rotar de nuevo
-        rotar(filas,columnas,180,newBuffer, &buffer2, N,flag);
-        newBuffer = buffer2;
-    }else{
-        if (flag==1)printf("Nada : clown");
-    }
-    *rotado = newBuffer;    
+    *delineados = newBuffer;
 }
