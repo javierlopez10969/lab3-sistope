@@ -10,7 +10,7 @@
 • -f: bandera que indica si se entregan resultados por consola. En caso 
 de que se ingrese este flag debera mostrar las dimensiones de la imagen
  antes y despues de aplicar zoom-in.
-./lab3 -I cameraman_256x256.raw -O imagenSalida.raw -M 256 -N 256 -r 2 -h 4 -b 64 -f
+//./lab3 -I cameraman_256x256.raw -O imagenSalida.raw -M 256 -N 256 -r 2 -h 4 -b 64 -f
 */
 #include <ctype.h>
 #include <pthread.h>
@@ -30,10 +30,21 @@ int filas, columnas, bandera, factor, opterr, cantHebras, bufferSize,N,m;
 float *buffer;
 pthread_t * hebras;
 
+//Función para crear un hilo consumidor en la eta del zoom-in
 void * zoomINThread(void *params){
 
 }
 
+//Función para crear un hilo consumidor en la eta del zoom-in
+void * suavizamoThread(void *params){
+
+}
+//Función para crear un hilo consumidor en la eta del zoom-in
+void * delineadoThread(void *params){
+
+}
+
+//Función para crear un hilo productor
 void * productora (void *params){
     //Leer la imagen de forma secuencial
     N = (filas * columnas * 4);
@@ -59,7 +70,9 @@ void * productora (void *params){
     }
     //aplicar efecto de suavizado
     //pthread_barrier_wait();
-
+    
+    //aplicar efecto de delineado
+    //pthread_barrier_wait();
     //Liberar las hebras consumidoras
     free(hebras);
 }

@@ -9,21 +9,22 @@ Para ejecutar estos scripts, abra una terminal y ejecute el siguiente comando pa
 
 ## Entradas que recibe este el ejecutable de este laboratorio 🥵 : 
 * -I filename : especifica el nombre de la imagen de entrada
-* -Z filename : especifica el nombre de la imagen resultante del zoom-in
-* -S filaname : especifica el nombre de la imagen resultante del suavizado (a la resultante del zoom-in)
-* -M numero : especifica el número de filas de la imagen
-* -N numero : especifica el número de columnas de la imagen
-* -r factor : factor de replicación para Zoom-in
-* -b: bandera que indica si se entregan resultados por consola. En caso de que se ingrese este flag deberá
+* -O filename : especifica el nombre de la imagen final resultante del pipeline.
+* -M n´umero : especifica el n´umero de filas de la imagen
+* -N n´umero : especifica el n´umero de columnas de la imagen
+* -h n´umero : especifica el n´umero de hebras.
+* -r factor : factor de replicaci´on para Zoom-in
+* -b n´umero : especifica el tamano del buffer de la hebra productora.
+* -f: bandera que indica si se entregan resultados por consola. En caso de que se ingrese este flag debera mostrar las dimensiones de la imagen
 
 Para ejecutar el código sin mostrar nada por pantalla su bandera debe estar en 0, por default es cero, asi que si no ingresa nada quedará en 0.
 # 👉  👈
 
-`/lab3 -I cameraman_256x256.raw -O imagen_salida.raw -M 256 -N 256 -r 2 -g 90` 
+`./lab3 -I cameraman_256x256.raw -O imagenSalida.raw -M 256 -N 256 -r 2 -h 4 -b 64` 
 
 Para mostrar las entradas por pantalla ejecute  :  
 
-`/lab3 -I cameraman_256x256.raw -O imagen_salida.raw -M 256 -N 256 -r 2 -g 90 -b entrada`
+`./lab3 -I cameraman_256x256.raw -O imagenSalida.raw -M 256 -N 256 -r 2 -h 4 -b 64 -f`
 
 Si no entrega alguna de las entradas el programa no correrá. Tampoco correrá en caso de tener una cantidad distinta entre filas y columnas. Tampoco funcionará si los grados ingresados no son múltiplos de 90. 
 # 🤡
