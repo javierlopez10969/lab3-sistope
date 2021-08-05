@@ -21,62 +21,136 @@ de que se ingrese este flag debera mostrar las dimensiones de la imagen
 #include <sys/wait.h>
 #include "funciones.h"
 
-#define LECTURA 0
-#define ESCRITURA 1
 
+//variables que se utilizaran para almacenar datos
 char *nombreImagen = NULL;
 char *imagenSalida = NULL;
 int filas, columnas, bandera, factor, opterr, cantHebras, bufferSize,N,m;
-float *buffer;
+float *buffer,*bufferZoom, *bufferSuavizado,*bufferDelineado;
+
+//variable del tipo pthread que representa una hebra
 pthread_t * hebras;
+//Mutex puntero para control el flujo de las hebras
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-//Función para crear un hilo consumidor en la eta del zoom-in
+
+/* ### Funciones necesarias para el uso de Hebras (Thread) ### */
+
+//Entradas: recibe un dato del tipo void*, debido a que pthread solo permite este tipo de datos.
+//Funcionamiento: Se utiliza para crear un hilo consumidor en la etapa del Zoom-In
 void * zoomINThread(void *params){
-
+    pthread_mutex_lock(&mutex);
+    int x;
+	x = *((int *)params);//se castea el argumento de void* a int
+    if (bandera != 0){
+	    printf("Soy una hebra y recibi el argumento: %d \n", x);
+    }
+    zoomIN(filas,columnas,buffer,&bufferZoom,factor,N);
+    pthread_mutex_unlock(&mutex);
 }
 
-//Función para crear un hilo consumidor en la eta del zoom-in
-void * suavizamoThread(void *params){
-
+//Entradas: recibe un dato del tipo void*, debido a que pthread solo permite este tipo de datos.
+//Funcionamiento: Se utiliza para crear un hilo consumidor en la etapa Suavizado
+void * suavizadoThread(void *params){
+    pthread_mutex_lock(&mutex);
+    int x;
+	x = *((int *)params);//se castea el argumento de void* a int
+    if (bandera != 0){
+	    printf("Soy una hebra y recibi el argumento: %d \n", x);
+    }
+    suavizado(filas*factor,columnas*factor, bufferZoom , &bufferSuavizado,N*factor*factor);
+    pthread_mutex_unlock(&mutex);
 }
-//Función para crear un hilo consumidor en la eta del zoom-in
+
+//Entradas: recibe un dato del tipo void*, debido a que pthread solo permite este tipo de datos.
+//Funcionamiento: Se utiliza para crear un hilo consumidor en la etapa Delineado
 void * delineadoThread(void *params){
+    pthread_mutex_lock(&mutex);
+    int x;
+	x = *((int *)params);//se castea el argumento de void* a int
+    if (bandera != 0){
+	    printf("Soy una hebra y recibi el argumento: %d \n", x);
+    }
 
+    delineado(filas*factor,columnas*factor, bufferSuavizado , &bufferDelineado,N*factor*factor);
+    pthread_mutex_unlock(&mutex);
 }
 
-//Función para crear un hilo productor
+//Entradas: recibe un dato del tipo void*, debido a que pthread solo permite este tipo de datos.
+//Funcionamiento: Se utiliza para crear un hilo consumidor que escribe una imagen
+void * escrituraThread(void *params){
+    pthread_mutex_lock(&mutex);
+    int x;
+	x = *((int *)params);//se castea el argumento de void* a int
+    if (bandera != 0){
+	    printf("Soy una hebra de escritura y recibi el argumento: %d \n", x);
+    }
+    escribirImagen(imagenSalida, filas*factor, columnas*factor, bufferDelineado, N*factor*factor, bandera);
+    pthread_mutex_unlock(&mutex);
+}
+
+//Entradas: recibe un dato del tipo void*, debido a que pthread solo permite este tipo de datos.
+//Funcionamiento: Se utiliza para crear un hilo productor
 void * productora (void *params){
     //Leer la imagen de forma secuencial
     N = (filas * columnas * 4);
     buffer = (float *)malloc(sizeof(float) * N);
     leerArchivo(nombreImagen, filas, columnas, buffer, N,bandera);
-    float * buffer2 = (float *)malloc(sizeof(float) * N);
-    delineado(filas,columnas, buffer , &buffer2,N);
-    escribirImagen(imagenSalida, filas, columnas, buffer2,N,bandera);
     //Calcular la cantidad de tamaño para cada hebra
     m = filas/cantHebras; 
-    if (bandera != 0)printf("Tamaño cada hebra %d bS : %d \n",m,bufferSize);
+    if (bandera != 0){
+        printf("Tamaño cada hebra %d bS : %d \n",m,bufferSize);
+        printf("Cantidad de hebras %d \n",cantHebras);
+    }
     //Creamos cada hebra
     hebras = (pthread_t*)malloc(sizeof(pthread_t)*cantHebras);
     //recoger porcion de la imagen
-    //aplicar zoom-in
+    //Aplicar ZOOM-IN
+    bufferZoom = NULL;
+    int *argumento = (int *)malloc(sizeof(int));
+    *argumento = 0;
+    pthread_t hebraZoom; 
+    pthread_create(&hebraZoom , NULL, zoomINThread,(void *)argumento );
+    pthread_join(hebraZoom, NULL); 
+    /*
     for(int i =0; i < cantHebras; i++){
-        pthread_create(&hebras[i],NULL,zoomINThread,NULL);
+        pthread_mutex_lock(&mutex);
+        pthread_create(&hebras[i],NULL,zoomINThread,(void *)argumento);
+        pthread_mutex_unlock(&mutex);
+        *argumento += m;
     }
-    //pthread_barrier_wait();
     // Esperamos a que todas terminen
     for(int i =0; i < cantHebras; i++){
         pthread_join(hebras[i], NULL);
     }
-    //aplicar efecto de suavizado
+    */
+
+    //Aplicar efecto de suavizado
     //pthread_barrier_wait();
-    
+    *argumento = 200;
+    bufferSuavizado = NULL;
+    pthread_t hebraSuavizado; 
+    pthread_create(&hebraSuavizado , NULL, suavizadoThread,(void *)argumento );
+    pthread_join(hebraSuavizado, NULL);
+
     //aplicar efecto de delineado
     //pthread_barrier_wait();
+    bufferDelineado = NULL;
+    *argumento = 115;
+    pthread_t hebraDelineado; 
+    pthread_create(&hebraDelineado , NULL, delineadoThread,(void *)argumento );
+    pthread_join(hebraDelineado, NULL); 
+    //Aplicar escritura de la imagen
+    *argumento = 300;
+    pthread_t hebraEscritura; 
+    pthread_create(&hebraEscritura , NULL, escrituraThread ,(void *)argumento );
+    pthread_join(hebraEscritura, NULL); 
     //Liberar las hebras consumidoras
     free(hebras);
 }
 
+
+// ### SECCIÓN DE MAIN ###
 int main(int argc, char **argv){
     char c;
     filas, columnas, bandera, factor, opterr, cantHebras, bufferSize,N,m = 0;
